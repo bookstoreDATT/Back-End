@@ -21,6 +21,20 @@ export class BadRequestError extends HttpException {
         this.status = StatusCodes.BAD_REQUEST;
     }
 }
+
+export class BadRequestFormError extends Error {
+    public status: number;
+    public name: string;
+    public errors: { message: string; field: string }[];
+
+    constructor(message: string, errors: { message: string; field: string }[]) {
+        super(message);
+        this.name = ReasonPhrases.BAD_REQUEST;
+        this.status = StatusCodes.BAD_REQUEST;
+        this.errors = errors;
+    }
+}
+
 export class DuplicateError extends HttpException {
     public status: number;
     public name: string;

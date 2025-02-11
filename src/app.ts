@@ -8,6 +8,7 @@ import morgan from 'morgan';
 import { corsOptions } from './config/cors.config';
 import errorHandler from './middlewares/errorHandlerMiddleware';
 import notFoundHandler from './middlewares/notFoundHandlerMiddleware';
+import router from './routes';
 // import router from './routes';
 
 const app: Express = express();
@@ -29,7 +30,7 @@ app.use(
 app.use(express.urlencoded({ extended: true }));
 
 // routes
-// app.use('/api/v1', router);
+app.use('/api/v1', router);
 
 //error middleware
 app.use(notFoundHandler);
