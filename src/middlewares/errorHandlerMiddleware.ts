@@ -19,6 +19,7 @@ const errorHandler: ErrorRequestHandler = (err, req: Request, res: Response, nex
         });
     }
     return res.status(status).json({
+        data: null,
         success: false,
         status,
         name,
