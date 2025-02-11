@@ -1,22 +1,20 @@
 import 'dotenv/config';
-import Joi from 'joi';
+import { z } from 'zod';
 
-const envVarsSchema = Joi.object()
-    .keys({
-        PORT: Joi.number().default(80),
-        HOSTNAME: Joi.string().default('127.0.0.1'),
-        MONGODB_URL_DEV: Joi.string().description('Local Mongo DB'),
-        MONGODB_URL_CLOUD: Joi.string().description('Cloud Mongo DB'),
-        JWT_ACCESS_TOKEN_KEY: Joi.string().required().description('JWT Access Token Key'),
-        JWT_ACCESS_EXPIRATION: Joi.string().default('15m').description('minutes after which access tokens expire'),
-    })
-    .unknown();
+const envVarsSchema = z.object({
+    PORT: z.coerce.number().default(80),
+    HOSTNAME: z.string().default('127.0.0.1'),
+    MONGODB_URL_DEV: z.string().describe('Local Mongo DB'),
+    JWT_ACCESS_TOKEN_KEY: z.string().min(1, { message: 'JWT Access Token Key là bắt buộc' }),
+    JWT_ACCESS_EXPIRATION: z.string().default('15m'),
+});
 
-const { value: envVars, error } = envVarsSchema.prefs({ errors: { label: 'key' } }).validate(process.env);
-if (error) {
-    throw new Error(`Config validation error: ${error.message}`);
+const result = envVarsSchema.safeParse(process.env);
+if (!result.success) {
+    console.error('❌ Config validation error:', result.error.format());
+    throw new Error('Config validation failed. Check environment variables.');
 }
-
+const envVars = result.data;
 const config = {
     port: envVars.PORT,
     hostname: envVars.HOSTNAME,
@@ -28,7 +26,7 @@ const config = {
     },
     jwt: {
         accessTokenKey: envVars.JWT_ACCESS_TOKEN_KEY,
-        verifyExpiration: envVars.JWT_VERIFY_EXPIRATION,
+        accessVerifyExpiration: envVars.JWT_ACCESS_EXPIRATION,
     },
 };
 

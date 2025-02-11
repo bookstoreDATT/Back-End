@@ -1,24 +1,20 @@
 import { BadRequestFormError } from '@/error/customError';
 import { Request, Response, NextFunction } from 'express';
-import Joi from 'joi';
+import { ZodSchema } from 'zod';
 
-const validator = (schema: Joi.ObjectSchema) => {
+const validator = (schema: ZodSchema) => {
     return (req: Request, res: Response, next: NextFunction) => {
-        const { error, value } = schema.validate(req.body, {
-            abortEarly: false,
-            allowUnknown: true,
-            stripUnknown: true,
-        });
-
-        if (error) {
-            const errors = error.details.map((err) => ({
-                message: err.message,
-                field: err.path.join('.'),
-            }));
+        const result = schema.safeParse(req.body);
+        if (!result.success) {
+            const errors = Object.entries(result.error.format())
+                .filter(([field]) => field !== '_errors')
+                .map(([field, issue]) => ({
+                    message: Array.isArray(issue) ? issue[0] : (issue as any)?._errors?.[0] || 'Lỗi không xác định',
+                    field,
+                }));
             throw new BadRequestFormError('Đã có lỗi xảy ra!', errors);
         }
-
-        req.body = value;
+        req.body = result.data;
         next();
     };
 };

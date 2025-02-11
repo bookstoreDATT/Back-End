@@ -5,6 +5,7 @@ import { Router } from 'express';
 
 const router = Router();
 
-router.post('/register',validator(registerValidation) , authController.register)
+router.post('/register', [validator(registerValidation)], authController.register);
+router.post('/login', authController.login);
 
 export default router;

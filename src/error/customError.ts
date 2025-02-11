@@ -27,11 +27,11 @@ export class BadRequestFormError extends Error {
     public name: string;
     public errors: { message: string; field: string }[];
 
-    constructor(message: string, errors: { message: string; field: string }[]) {
+    constructor(message: string, errors: { message: string; field: string } | { message: string; field: string }[]) {
         super(message);
         this.name = ReasonPhrases.BAD_REQUEST;
         this.status = StatusCodes.BAD_REQUEST;
-        this.errors = errors;
+        this.errors = Array.isArray(errors) ? errors : [errors];
     }
 }
 

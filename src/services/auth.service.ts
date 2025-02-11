@@ -3,6 +3,10 @@ import customResponse from '@/helpers/response';
 import User from '@/models/User';
 import { NextFunction, Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
+import bcrypt from 'bcryptjs';
+import { generateToken } from './token.service';
+import config from '@/config/env.config';
+import _ from 'lodash';
 
 export const register = async (req: Request, res: Response, next: NextFunction) => {
     const fields = [
@@ -23,6 +27,32 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
             data: newUser,
             message: 'Đăng ký tài khoản thành công.',
             status: StatusCodes.CREATED,
+            success: true,
+        }),
+    );
+};
+export const login = async (req: Request, res: Response, next: NextFunction) => {
+    const foundedUser = await User.findOne({ email: req.body.email });
+    if (!foundedUser) {
+        throw new BadRequestFormError('Có lỗi xảy ra', {
+            message: 'Tài khoản không tồn tại trong hệ thống!',
+            field: 'email',
+        });
+    }
+    const isMatchedPassword = await bcrypt.compare(req.body.password, foundedUser?.password);
+    if (!isMatchedPassword) {
+        throw new BadRequestFormError('Có lỗi xảy ra', {
+            message: 'Mật khẩu hoặc tài khoản không đúng!',
+            field: 'password',
+        });
+    }
+    const accessToken = await generateToken(foundedUser, config.jwt.accessTokenKey, config.jwt.accessVerifyExpiration);
+    const user = _.pick(foundedUser, ['_id', 'userName', 'email', 'role']);
+    return res.status(StatusCodes.ACCEPTED).json(
+        customResponse({
+            data: { user, accessToken },
+            message: 'Đăng nhập thành công',
+            status: StatusCodes.ACCEPTED,
             success: true,
         }),
     );
