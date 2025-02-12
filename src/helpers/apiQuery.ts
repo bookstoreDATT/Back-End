@@ -1,3 +1,4 @@
+import Tag from '@/models/Tag';
 import { de } from 'date-fns/locale';
 import e from 'express';
 import { toLower } from 'lodash';
@@ -91,11 +92,28 @@ class APIQuery<T extends Document> {
         if (this.queryString.search) {
             const isId = mongoose.Types.ObjectId.isValid(this.queryString.search);
             if (isId) {
-                const search = this.queryString.search;
-                this.query = this.query.find({ _id: search });
+                this.query = this.query.find({ _id: this.queryString.search });
             } else {
-                const search = toLower(this.queryString.search);
-                this.query = this.query.find({ name: { $regex: search, $options: 'i' } });
+                const searchTerms: string[] = this.queryString.search
+                    .toLowerCase()
+                    .split(/\s+/)
+                    .filter((term: string) => term.trim() !== ''); // Lọc bỏ khoảng trắng
+                const tagIds: string[] = this.queryString.tagIds ? this.queryString.tagIds.split(',') : [];
+                this.query = this.query.find({
+                    $or: [
+                        {
+                            $and: searchTerms.map((term) => ({
+                                name: { $regex: term, $options: 'i' }, // 🔍 Tìm tất cả từ trong name
+                            })),
+                        },
+                        {
+                            $and: searchTerms.map((term) => ({
+                                author: { $regex: term, $options: 'i' }, // 🔍 Tìm tất cả từ trong author
+                            })),
+                        },
+                        ...(tagIds.length > 0 ? [{ tagId: { $all: tagIds } }] : []),
+                    ],
+                });
             }
         }
         return this;

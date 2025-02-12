@@ -1,8 +1,8 @@
 import { BadRequestError, BadRequestFormError } from '@/error/customError';
 import APIQuery from '@/helpers/apiQuery';
-import handleQuery from '@/helpers/handleQuery';
 import customResponse from '@/helpers/response';
 import Product from '@/models/Product';
+import Tag from '@/models/Tag';
 import { uploadImages } from '@/utils/cloudinary/uploadImage';
 import { NextFunction, Request, Response } from 'express';
 import { ReasonPhrases, StatusCodes } from 'http-status-codes';
@@ -57,11 +57,9 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
     }
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
     const uploadedThumbnail = files.thumbnail ? await uploadImages(files.thumbnail[0]) : null;
-    const thumbnailUrl = Array.isArray(uploadedThumbnail)
-        ? uploadedThumbnail[0]
-        : uploadedThumbnail || existingProduct.thumbnail;
+    const thumbnailUrl = Array.isArray(uploadedThumbnail) ? uploadedThumbnail[0] : uploadedThumbnail;
     const uploadedImages = files.images ? await uploadImages(files.images) : null;
-    const imagesUrl = uploadedImages || existingProduct.images;
+    const imagesUrl = uploadedImages;
     const tagIdArray = Array.isArray(req.body.tagId)
         ? req.body.tagId.map((id: string) => new mongoose.Types.ObjectId(id.trim()))
         : typeof req.body.tagId === 'string'
@@ -85,17 +83,41 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
 export const getAllProduct = async (req: Request, res: Response, next: NextFunction) => {
     const page = req.query.page ? +req.query.page : 1;
     req.query.limit = String(req.query.limit || 10);
+
+    let tagIds: string[] = [];
+
+    if (req.query.search) {
+        const searchTerms = req.query.search
+            .toString()
+            .toLowerCase()
+            .split(/[,\s]+/) // Tách bằng dấu phẩy hoặc khoảng trắng
+            .filter((term) => term.trim() !== ''); // Loại bỏ khoảng trắng dư thừa
+        console.log(searchTerms);
+        if (searchTerms.length > 0) {
+            const matchingTags = await Tag.find({
+                name: { $in: searchTerms.map((term) => new RegExp(term, 'i')) }, // Tìm theo bất kỳ từ khóa nào
+            }).select('_id');
+
+            tagIds = matchingTags.map((tag) => tag._id.toString()); // Chuyển về mảng string
+        }
+    }
+
+    console.log(tagIds);
+    req.query.tagIds = tagIds.join(',');
+
     const features = new APIQuery(Product.find().populate(populateCategory).populate(populateTag), req.query);
-    features.filter().sort().limitFields().search().paginate();
+    features.filter().sort().limitFields().search().paginate(); // ✅ Không cần async
+
     const [data, totalDocs] = await Promise.all([features.query, features.count()]);
     const totalPages = Math.ceil(Number(totalDocs) / +req.query.limit);
+
     return res.status(StatusCodes.OK).json(
         customResponse({
             data: {
-                data: data,
-                page: page,
-                totalDocs: totalDocs,
-                totalPages: totalPages,
+                data,
+                page,
+                totalDocs,
+                totalPages,
             },
             success: true,
             status: StatusCodes.OK,
@@ -103,6 +125,7 @@ export const getAllProduct = async (req: Request, res: Response, next: NextFunct
         }),
     );
 };
+
 // @ HIDE PRODUCT
 export const hideProduct = async (req: Request, res: Response, next: NextFunction) => {
     const foundedProduct = await Product.findOne({ _id: req.params.id });

@@ -9,6 +9,16 @@ export const ProductSchema = new Schema(
             required: true,
             trim: true,
         },
+        sold: {
+            type: Number,
+            default: 0,
+        },
+        discount: {
+            type: Number,
+            max: 100,
+            min: 0,
+            default: 0,
+        },
         productCode: {
             type: String,
             required: true,
