@@ -1,8 +1,8 @@
-import { BadRequestFormError } from '@/error/customError';
+import { BadRequestError, BadRequestFormError } from '@/error/customError';
 import customResponse from '@/helpers/response';
 import User from '@/models/User';
 import { NextFunction, Request, Response } from 'express';
-import { StatusCodes } from 'http-status-codes';
+import { ReasonPhrases, StatusCodes } from 'http-status-codes';
 import bcrypt from 'bcryptjs';
 import { generateToken } from './token.service';
 import config from '@/config/env.config';
@@ -50,9 +50,23 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     const user = _.pick(foundedUser, ['_id', 'userName', 'email', 'role']);
     return res.status(StatusCodes.ACCEPTED).json(
         customResponse({
-            data: { user, accessToken },
+            data: { ...user, accessToken },
             message: 'Đăng nhập thành công',
             status: StatusCodes.ACCEPTED,
+            success: true,
+        }),
+    );
+};
+export const getProfile = async (req: Request, res: Response, next: NextFunction) => {
+    const foundedUser = await User.findOne({ _id: req.userId });
+    if (!foundedUser) {
+        throw new BadRequestError('Không tìm thấy user');
+    }
+    return res.status(StatusCodes.OK).json(
+        customResponse({
+            data: foundedUser,
+            message: ReasonPhrases.OK,
+            status: StatusCodes.OK,
             success: true,
         }),
     );

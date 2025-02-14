@@ -1,6 +1,5 @@
 import { IProductSchema } from '@/interfaces/schema/product';
 import mongoose, { Schema } from 'mongoose';
-import { boolean } from 'zod';
 
 export const ProductSchema = new Schema(
     {

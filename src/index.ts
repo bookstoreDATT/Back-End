@@ -2,7 +2,7 @@ import app from './app';
 import connectDB from './config/database.config';
 import config from './config/env.config';
 
-const PORT = config.port;
+const PORT = config.port || 8080;
 const HOSTNAME = config.hostname;
 
 let server: any;

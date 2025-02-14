@@ -18,6 +18,10 @@ export const getAll = asyncHandler(async (req: Request, res: Response, next: Nex
 export const getDetailedProduct = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     return await productService.getDetailedProduct(req, res, next);
 });
+// @ GET RELATED PRODUCT
+export const getRelatedProducts = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    return await productService.getRelatedProduct(req, res, next);
+});
 // @ HIDE PRODUCT
 export const hide = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     return await productService.hideProduct(req, res, next);

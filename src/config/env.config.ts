@@ -21,7 +21,7 @@ const config = {
     mongoose: {
         url: envVars.MONGODB_URL_DEV,
         options: {
-            dbName: 'DATT',
+            dbName: 'bookstore',
         },
     },
     jwt: {
