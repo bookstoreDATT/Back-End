@@ -7,6 +7,7 @@ export interface IProductSchema extends Document {
     thumbnail: string;
     images: string[];
     price: number;
+    stock: number;
     categoryId: Schema.Types.ObjectId;
     author: string;
     publicDate: string;

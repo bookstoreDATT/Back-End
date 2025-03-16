@@ -4,7 +4,7 @@ import e from 'express';
 import { toLower } from 'lodash';
 import mongoose, { Query, Document } from 'mongoose';
 
-interface QueryString {
+export interface QueryString {
     [key: string]: any;
     page?: string;
     sort?: string;
@@ -97,18 +97,18 @@ class APIQuery<T extends Document> {
                 const searchTerms: string[] = this.queryString.search
                     .toLowerCase()
                     .split(/\s+/)
-                    .filter((term: string) => term.trim() !== ''); // Lọc bỏ khoảng trắng
+                    .filter((term: string) => term.trim() !== '');
                 const tagIds: string[] = this.queryString.tagIds ? this.queryString.tagIds.split(',') : [];
                 this.query = this.query.find({
                     $or: [
                         {
                             $and: searchTerms.map((term) => ({
-                                name: { $regex: term, $options: 'i' }, // 🔍 Tìm tất cả từ trong name
+                                name: { $regex: term, $options: 'i' },
                             })),
                         },
                         {
                             $and: searchTerms.map((term) => ({
-                                author: { $regex: term, $options: 'i' }, // 🔍 Tìm tất cả từ trong author
+                                author: { $regex: term, $options: 'i' },
                             })),
                         },
                         ...(tagIds.length > 0 ? [{ tagId: { $all: tagIds } }] : []),

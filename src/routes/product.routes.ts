@@ -22,6 +22,7 @@ router.patch(
 );
 router.get('/all', productController.getAll);
 router.get('/:id', productController.getDetailedProduct);
+router.get('/related/:id', productController.getRelatedProducts);
 router.delete('/:id', productController.hide);
 
 export default router;

@@ -2,7 +2,7 @@ import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import 'dotenv/config';
-import express, { Express, Request, Response } from 'express';
+import express, { Express, NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { corsOptions } from './config/cors.config';
@@ -11,6 +11,7 @@ import notFoundHandler from './middlewares/notFoundHandlerMiddleware';
 import router from './routes';
 import { v2 as cloudinary } from 'cloudinary';
 import { cloudinaryConfig } from './config/cloudinary.config';
+import { payosController } from './controllers';
 const app: Express = express();
 
 // firebase app
@@ -23,12 +24,17 @@ app.use(compression());
 app.use(cookieParser());
 
 // webhook
+app.use('/webhook', payosController.HandlePayOsWebhook);
+
+process.stdin.resume();
 app.use(
     express.json({
         limit: '5mb',
     }),
 );
 app.use(express.urlencoded({ extended: true }));
+
+
 
 // routes
 app.use('/api/v1', router);

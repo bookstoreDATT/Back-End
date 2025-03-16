@@ -11,3 +11,8 @@ export const register = asyncHandler(async (req: Request, res: Response, next: N
 export const login = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     return await authService.login(req, res, next);
 });
+
+// @ GET PROFILE
+export const getProfile = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    return await authService.getProfile(req, res, next);
+});

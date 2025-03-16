@@ -22,6 +22,7 @@ const populateTag = {
 // @CREATE PRODUCT
 export const createProduct = async (req: Request, res: Response, next: NextFunction) => {
     const checkNameProduct = await Product.findOne({ name: req.body.name });
+    const tagIds = JSON.parse(req.body.tagId) || [];
     if (checkNameProduct) {
         throw new BadRequestFormError('Có lỗi xảy ra', { message: 'Tên sách này đã tồn tại', field: 'name' });
     }
@@ -29,10 +30,10 @@ export const createProduct = async (req: Request, res: Response, next: NextFunct
     const uploadedThumbnail = files.thumbnail ? await uploadImages(files.thumbnail[0]) : null;
     const thumbnailUrl = Array.isArray(uploadedThumbnail) ? uploadedThumbnail[0] : uploadedThumbnail || '';
     const imagesUrl = files.images ? await uploadImages(files.images) : [];
-    const tagIdArray = Array.isArray(req.body.tagId)
-        ? req.body.tagId.map((id: string) => new mongoose.Types.ObjectId(id.trim()))
-        : typeof req.body.tagId === 'string'
-          ? req.body.tagId.split(',').map((id: string) => new mongoose.Types.ObjectId(id.trim()))
+    const tagIdArray = Array.isArray(tagIds)
+        ? tagIds.map((id: string) => new mongoose.Types.ObjectId(id.trim()))
+        : typeof tagIds === 'string'
+          ? tagIds.split(',').map((id: string) => new mongoose.Types.ObjectId(id.trim()))
           : [];
     const newProduct = await Product.create({
         ...req.body,
@@ -55,19 +56,30 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
     if (!existingProduct) {
         throw new BadRequestError('Sản phẩm không tồn tại');
     }
+    const findProduct = await Product.findOne({ name: req.body.name });
+    if (findProduct && findProduct._id.toString() !== req.params.id) {
+        throw new BadRequestFormError('Có lỗi', { field: 'name', message: 'Tên người dùng này đã tồn tại' });
+    }
+    const tagIds = JSON.parse(req.body.tagId) || [];
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
     const uploadedThumbnail = files.thumbnail ? await uploadImages(files.thumbnail[0]) : null;
     const thumbnailUrl = Array.isArray(uploadedThumbnail) ? uploadedThumbnail[0] : uploadedThumbnail;
     const uploadedImages = files.images ? await uploadImages(files.images) : null;
     const imagesUrl = uploadedImages;
-    const tagIdArray = Array.isArray(req.body.tagId)
-        ? req.body.tagId.map((id: string) => new mongoose.Types.ObjectId(id.trim()))
-        : typeof req.body.tagId === 'string'
-          ? req.body.tagId.split(',').map((id: string) => new mongoose.Types.ObjectId(id.trim()))
+    const tagIdArray = Array.isArray(tagIds)
+        ? tagIds.map((id: string) => new mongoose.Types.ObjectId(id.trim()))
+        : typeof tagIds === 'string'
+          ? tagIds.split(',').map((id: string) => new mongoose.Types.ObjectId(id.trim()))
           : existingProduct.tagId;
     req.body.tagId = tagIdArray;
-    req.body.thumbnail = thumbnailUrl;
-    req.body.images = imagesUrl;
+    
+    if (thumbnailUrl) {
+        req.body.thumbnail = thumbnailUrl;
+    }
+
+    if (imagesUrl) {
+        req.body.images = imagesUrl;
+    }
     existingProduct.set({ ...req.body });
     await existingProduct.save();
     return res.status(StatusCodes.OK).json(
@@ -90,23 +102,21 @@ export const getAllProduct = async (req: Request, res: Response, next: NextFunct
         const searchTerms = req.query.search
             .toString()
             .toLowerCase()
-            .split(/[,\s]+/) // Tách bằng dấu phẩy hoặc khoảng trắng
-            .filter((term) => term.trim() !== ''); // Loại bỏ khoảng trắng dư thừa
-        console.log(searchTerms);
+            .split(/[,\s]+/)
+            .filter((term) => term.trim() !== '');
         if (searchTerms.length > 0) {
             const matchingTags = await Tag.find({
-                name: { $in: searchTerms.map((term) => new RegExp(term, 'i')) }, // Tìm theo bất kỳ từ khóa nào
+                name: { $in: searchTerms.map((term) => new RegExp(term, 'i')) },
             }).select('_id');
 
-            tagIds = matchingTags.map((tag) => tag._id.toString()); // Chuyển về mảng string
+            tagIds = matchingTags.map((tag) => tag._id.toString());
         }
     }
 
-    console.log(tagIds);
     req.query.tagIds = tagIds.join(',');
 
     const features = new APIQuery(Product.find().populate(populateCategory).populate(populateTag), req.query);
-    features.filter().sort().limitFields().search().paginate(); // ✅ Không cần async
+    features.filter().sort().limitFields().search().paginate();
 
     const [data, totalDocs] = await Promise.all([features.query, features.count()]);
     const totalPages = Math.ceil(Number(totalDocs) / +req.query.limit);
@@ -145,7 +155,9 @@ export const hideProduct = async (req: Request, res: Response, next: NextFunctio
 };
 // @ GET DETAIL PRODUCT
 export const getDetailedProduct = async (req: Request, res: Response, next: NextFunction) => {
-    const foundedProduct = await Product.findOne({ _id: req.params.id });
+    const foundedProduct = await Product.findOne({ _id: req.params.id })
+        .populate(populateCategory)
+        .populate(populateTag);
     if (!foundedProduct) {
         throw new BadRequestError(`Not found product with id: ${req.params.id}`);
     }
@@ -153,6 +165,27 @@ export const getDetailedProduct = async (req: Request, res: Response, next: Next
         customResponse({
             data: foundedProduct,
             message: ReasonPhrases.OK,
+            status: StatusCodes.OK,
+            success: true,
+        }),
+    );
+};
+
+export const getRelatedProduct = async (req: Request, res: Response, next: NextFunction) => {
+    if (!req.query.cateId) {
+        throw new BadRequestError('Chưa có category ID');
+    }
+    if (!req.params.id) {
+        throw new BadRequestError('Chưa có Id của sản phẩm');
+    }
+    const relatedProducts = await Product.find({
+        categoryId: req.query.cateId,
+        _id: { $ne: req.params.id },
+    }).limit(6);
+    return res.status(StatusCodes.OK).json(
+        customResponse({
+            data: relatedProducts,
+            message: 'Lấy danh sách sản phẩm tương tự thành công',
             status: StatusCodes.OK,
             success: true,
         }),
