@@ -8,7 +8,7 @@ const router = Router();
 
 router.get('/all', tagController.getAll);
 router.get('/:id', tagController.getDetail);
-router.post('/create', tagController.create);
+router.post('/create', authenticate, authorize(ROLE.ADMIN), tagController.create);
 router.patch('/:id', authenticate, authorize(ROLE.ADMIN), tagController.update);
 
 export default router;

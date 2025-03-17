@@ -9,7 +9,7 @@ import { ReasonPhrases, StatusCodes } from 'http-status-codes';
 export const createCategory = async (req: Request, res: Response, next: NextFunction) => {
     const foundedCategory = await Category.findOne({ name: req.body.name });
     if (foundedCategory) {
-        throw new BadRequestFormError('Có lỗi xảy ra', { message: 'Danh mục này đã tồn tại!', field: 'category' });
+        throw new BadRequestFormError('Có lỗi xảy ra', { message: 'Danh mục này đã tồn tại!', field: 'name' });
     }
     const newCategory = await Category.create({ ...req.body });
     return res.status(StatusCodes.CREATED).json(
