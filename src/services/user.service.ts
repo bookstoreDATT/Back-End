@@ -8,6 +8,7 @@ import bcrypt from 'bcryptjs';
 
 export const updateUserProfile = async (req: Request, res: Response) => {
     const file = req.file as any;
+    console.log(req.body);
     const findUser = await User.findOne({ userName: req.body.userName });
     if (findUser && findUser._id.toString() !== req.userId) {
         throw new BadRequestFormError('Có lỗi', { field: 'userName', message: 'Tên người dùng này đã tồn tại' });

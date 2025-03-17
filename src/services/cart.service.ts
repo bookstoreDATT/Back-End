@@ -9,7 +9,7 @@ import { ReasonPhrases, StatusCodes } from 'http-status-codes';
 export const getCartByUser = async (req: Request, res: Response, next: NextFunction) => {
     const cartUser = await Cart.findOne({ userId: req.userId }).populate(
         'items.productId',
-        'name thumbnail stock price isHide',
+        'name thumbnail stock price isHide discount',
     );
 
     if (!cartUser) throw new NotFoundError('Không tìm thấy giỏ hàng hoặc giỏ hàng không tồn tại.');
